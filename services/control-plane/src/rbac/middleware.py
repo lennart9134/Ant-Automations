@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from jose import JWTError, jwt
@@ -27,7 +27,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     PLATFORM_ADMIN = "platform_admin"
     TENANT_ADMIN = "tenant_admin"
     OPERATOR = "operator"
@@ -37,16 +37,34 @@ class Role(str, Enum):
 ROLE_PERMISSIONS: dict[str, set[str]] = {
     Role.PLATFORM_ADMIN: {"*"},
     Role.TENANT_ADMIN: {
-        "dashboard:read", "audit:read", "connectors:read", "connectors:configure",
-        "workflows:read", "workflows:execute", "approvals:read", "approvals:decide",
-        "tenants:read", "tenants:configure", "users:read", "users:manage",
+        "dashboard:read",
+        "audit:read",
+        "connectors:read",
+        "connectors:configure",
+        "workflows:read",
+        "workflows:execute",
+        "approvals:read",
+        "approvals:decide",
+        "tenants:read",
+        "tenants:configure",
+        "users:read",
+        "users:manage",
     },
     Role.OPERATOR: {
-        "dashboard:read", "audit:read", "connectors:read",
-        "workflows:read", "workflows:execute", "approvals:read", "approvals:decide",
+        "dashboard:read",
+        "audit:read",
+        "connectors:read",
+        "workflows:read",
+        "workflows:execute",
+        "approvals:read",
+        "approvals:decide",
     },
     Role.VIEWER: {
-        "dashboard:read", "audit:read", "connectors:read", "workflows:read", "approvals:read",
+        "dashboard:read",
+        "audit:read",
+        "connectors:read",
+        "workflows:read",
+        "approvals:read",
     },
 }
 

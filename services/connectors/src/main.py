@@ -1,7 +1,7 @@
 """Connectors service — manages business-system connector lifecycle and execution."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI
 

@@ -10,12 +10,11 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Any
+from datetime import UTC, datetime
+from enum import StrEnum
 
 
-class ApprovalState(str, Enum):
+class ApprovalState(StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
     DENIED = "denied"
@@ -23,7 +22,7 @@ class ApprovalState(str, Enum):
     TIMED_OUT = "timed_out"
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -50,7 +49,7 @@ class ApprovalRequest:
     steps: list[ApprovalStep] = field(default_factory=list)
     timeout_seconds: int = 3600
     escalation_target: str | None = None
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     resolved_at: str | None = None
 
 
@@ -80,7 +79,7 @@ class ApprovalChainService:
         # Auto-approve low-risk actions
         if risk_level == RiskLevel.LOW:
             request.state = ApprovalState.APPROVED
-            request.resolved_at = datetime.now(timezone.utc).isoformat()
+            request.resolved_at = datetime.now(UTC).isoformat()
             for step in request.steps:
                 step.decided = True
                 step.decision = ApprovalState.APPROVED
@@ -98,22 +97,20 @@ class ApprovalChainService:
             if step.approver_id == approver_id and not step.decided:
                 step.decided = True
                 step.decision = ApprovalState.APPROVED if approved else ApprovalState.DENIED
-                step.decided_at = datetime.now(timezone.utc).isoformat()
+                step.decided_at = datetime.now(UTC).isoformat()
                 step.comment = comment
                 step_found = True
                 break
 
         if not step_found:
-            raise ValueError(
-                f"Approver '{approver_id}' has no pending step on request {request_id}"
-            )
+            raise ValueError(f"Approver '{approver_id}' has no pending step on request {request_id}")
 
         if any(s.decision == ApprovalState.DENIED for s in request.steps):
             request.state = ApprovalState.DENIED
-            request.resolved_at = datetime.now(timezone.utc).isoformat()
+            request.resolved_at = datetime.now(UTC).isoformat()
         elif all(s.decided for s in request.steps):
             request.state = ApprovalState.APPROVED
-            request.resolved_at = datetime.now(timezone.utc).isoformat()
+            request.resolved_at = datetime.now(UTC).isoformat()
 
         return request
 

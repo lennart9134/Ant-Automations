@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -17,13 +17,13 @@ if TYPE_CHECKING:
     from ..graph.engine import WorkflowEngine
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     JOINER = "joiner"
     MOVER = "mover"
     LEAVER = "leaver"
 
 
-class ExecutionMode(str, Enum):
+class ExecutionMode(StrEnum):
     """Per business plan Section 4.1 — three execution modes."""
 
     OBSERVATION = "observation"  # Log planned actions, no execution
@@ -31,7 +31,7 @@ class ExecutionMode(str, Enum):
     AUTONOMOUS = "autonomous"  # Execute automatically (low-risk only)
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -95,26 +95,32 @@ def plan_actions(state: ProvisioningState) -> ProvisioningState:
     actions: list[dict[str, Any]] = []
 
     if event_type == EventType.JOINER:
-        actions.append({
-            "action_type": "create_user",
-            "target": state["user_email"],
-            "parameters": {"department": department},
-            "risk_level": RiskLevel.MEDIUM.value,
-        })
+        actions.append(
+            {
+                "action_type": "create_user",
+                "target": state["user_email"],
+                "parameters": {"department": department},
+                "risk_level": RiskLevel.MEDIUM.value,
+            }
+        )
         for group in template["groups"]:
-            actions.append({
-                "action_type": "assign_group",
-                "target": state["user_email"],
-                "parameters": {"group": group},
-                "risk_level": RiskLevel.LOW.value,
-            })
+            actions.append(
+                {
+                    "action_type": "assign_group",
+                    "target": state["user_email"],
+                    "parameters": {"group": group},
+                    "risk_level": RiskLevel.LOW.value,
+                }
+            )
         for app_name in template["apps"]:
-            actions.append({
-                "action_type": "provision_app_access",
-                "target": state["user_email"],
-                "parameters": {"app": app_name},
-                "risk_level": RiskLevel.LOW.value,
-            })
+            actions.append(
+                {
+                    "action_type": "provision_app_access",
+                    "target": state["user_email"],
+                    "parameters": {"app": app_name},
+                    "risk_level": RiskLevel.LOW.value,
+                }
+            )
 
     elif event_type == EventType.MOVER:
         old_template = DEPARTMENT_TEMPLATES.get(department, DEPARTMENT_TEMPLATES["default"])
@@ -122,40 +128,50 @@ def plan_actions(state: ProvisioningState) -> ProvisioningState:
         new_template = DEPARTMENT_TEMPLATES.get(new_dept, DEPARTMENT_TEMPLATES["default"])
 
         for group in set(old_template["groups"]) - set(new_template["groups"]):
-            actions.append({
-                "action_type": "remove_group",
-                "target": state["user_email"],
-                "parameters": {"group": group},
-                "risk_level": RiskLevel.MEDIUM.value,
-            })
+            actions.append(
+                {
+                    "action_type": "remove_group",
+                    "target": state["user_email"],
+                    "parameters": {"group": group},
+                    "risk_level": RiskLevel.MEDIUM.value,
+                }
+            )
         for group in set(new_template["groups"]) - set(old_template["groups"]):
-            actions.append({
-                "action_type": "assign_group",
-                "target": state["user_email"],
-                "parameters": {"group": group},
-                "risk_level": RiskLevel.LOW.value,
-            })
+            actions.append(
+                {
+                    "action_type": "assign_group",
+                    "target": state["user_email"],
+                    "parameters": {"group": group},
+                    "risk_level": RiskLevel.LOW.value,
+                }
+            )
 
     elif event_type == EventType.LEAVER:
-        actions.append({
-            "action_type": "disable_account",
-            "target": state["user_email"],
-            "parameters": {},
-            "risk_level": RiskLevel.HIGH.value,
-        })
-        actions.append({
-            "action_type": "revoke_all_sessions",
-            "target": state["user_email"],
-            "parameters": {},
-            "risk_level": RiskLevel.HIGH.value,
-        })
-        for group in template["groups"]:
-            actions.append({
-                "action_type": "remove_group",
+        actions.append(
+            {
+                "action_type": "disable_account",
                 "target": state["user_email"],
-                "parameters": {"group": group},
-                "risk_level": RiskLevel.MEDIUM.value,
-            })
+                "parameters": {},
+                "risk_level": RiskLevel.HIGH.value,
+            }
+        )
+        actions.append(
+            {
+                "action_type": "revoke_all_sessions",
+                "target": state["user_email"],
+                "parameters": {},
+                "risk_level": RiskLevel.HIGH.value,
+            }
+        )
+        for group in template["groups"]:
+            actions.append(
+                {
+                    "action_type": "remove_group",
+                    "target": state["user_email"],
+                    "parameters": {"group": group},
+                    "risk_level": RiskLevel.MEDIUM.value,
+                }
+            )
 
     return {**state, "planned_actions": actions, "status": "planned"}
 
@@ -185,11 +201,13 @@ def execute_actions(state: ProvisioningState) -> ProvisioningState:
     errors = []
 
     for action in state.get("planned_actions", []):
-        executed.append({
-            **action,
-            "execution_id": str(uuid.uuid4()),
-            "status": "completed",
-        })
+        executed.append(
+            {
+                **action,
+                "execution_id": str(uuid.uuid4()),
+                "status": "completed",
+            }
+        )
 
     return {
         **state,

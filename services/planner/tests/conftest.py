@@ -1,4 +1,5 @@
 """Pytest configuration — ensure the service's src package is importable."""
+
 import sys
 from pathlib import Path
 

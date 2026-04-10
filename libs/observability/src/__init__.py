@@ -1,4 +1,4 @@
-from .telemetry import configure_telemetry
 from .metrics import AntMetrics
+from .telemetry import configure_telemetry
 
 __all__ = ["configure_telemetry", "AntMetrics"]

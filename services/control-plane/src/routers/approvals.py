@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from ..safety.approvals import ApprovalChainService, ApprovalState, RiskLevel
+from ..safety.approvals import ApprovalChainService, RiskLevel
 
 router = APIRouter()
 
@@ -65,9 +65,7 @@ async def get_approval(approval_id: str, request: Request) -> dict:
 
 
 @router.post("/{approval_id}/decide")
-async def decide_approval(
-    approval_id: str, decision: ApprovalDecision, request: Request
-) -> dict:
+async def decide_approval(approval_id: str, decision: ApprovalDecision, request: Request) -> dict:
     """Submit an approval decision."""
     svc = _get_service(request)
     user = request.state.user
@@ -85,9 +83,7 @@ async def decide_approval(
 
 
 @router.get("/")
-async def list_pending_approvals(
-    status: str = "pending", request: Request = None
-) -> list[dict]:
+async def list_pending_approvals(status: str = "pending", request: Request = None) -> list[dict]:
     """List approval requests by status."""
     svc = _get_service(request)
     return [

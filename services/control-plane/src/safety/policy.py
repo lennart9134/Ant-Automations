@@ -8,17 +8,17 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class PolicyDecision(str, Enum):
+class PolicyDecision(StrEnum):
     ALLOW = "allow"
     REQUIRE_APPROVAL = "require_approval"
     BLOCK = "block"
 
 
-class PolicyConditionOp(str, Enum):
+class PolicyConditionOp(StrEnum):
     EQUALS = "equals"
     NOT_EQUALS = "not_equals"
     IN = "in"
@@ -117,36 +117,42 @@ def create_default_policies() -> PolicyEngine:
     """Create the standard policy set for enterprise deployments."""
     engine = PolicyEngine()
 
-    engine.add_rule(PolicyRule(
-        id="block-admin-delete",
-        name="Block admin account deletion",
-        description="Never allow deletion of admin accounts without explicit override",
-        conditions=[
-            PolicyCondition(field="action", op=PolicyConditionOp.EQUALS, value="delete_user"),
-            PolicyCondition(field="target_role", op=PolicyConditionOp.EQUALS, value="admin"),
-        ],
-        decision=PolicyDecision.BLOCK,
-        priority=100,
-    ))
+    engine.add_rule(
+        PolicyRule(
+            id="block-admin-delete",
+            name="Block admin account deletion",
+            description="Never allow deletion of admin accounts without explicit override",
+            conditions=[
+                PolicyCondition(field="action", op=PolicyConditionOp.EQUALS, value="delete_user"),
+                PolicyCondition(field="target_role", op=PolicyConditionOp.EQUALS, value="admin"),
+            ],
+            decision=PolicyDecision.BLOCK,
+            priority=100,
+        )
+    )
 
-    engine.add_rule(PolicyRule(
-        id="auto-approve-low-risk",
-        name="Auto-approve low-risk actions",
-        conditions=[
-            PolicyCondition(field="risk_level", op=PolicyConditionOp.EQUALS, value="low"),
-        ],
-        decision=PolicyDecision.ALLOW,
-        priority=10,
-    ))
+    engine.add_rule(
+        PolicyRule(
+            id="auto-approve-low-risk",
+            name="Auto-approve low-risk actions",
+            conditions=[
+                PolicyCondition(field="risk_level", op=PolicyConditionOp.EQUALS, value="low"),
+            ],
+            decision=PolicyDecision.ALLOW,
+            priority=10,
+        )
+    )
 
-    engine.add_rule(PolicyRule(
-        id="require-approval-high-risk",
-        name="Require multi-approval for high-risk actions",
-        conditions=[
-            PolicyCondition(field="risk_level", op=PolicyConditionOp.EQUALS, value="high"),
-        ],
-        decision=PolicyDecision.REQUIRE_APPROVAL,
-        priority=50,
-    ))
+    engine.add_rule(
+        PolicyRule(
+            id="require-approval-high-risk",
+            name="Require multi-approval for high-risk actions",
+            conditions=[
+                PolicyCondition(field="risk_level", op=PolicyConditionOp.EQUALS, value="high"),
+            ],
+            decision=PolicyDecision.REQUIRE_APPROVAL,
+            priority=50,
+        )
+    )
 
     return engine

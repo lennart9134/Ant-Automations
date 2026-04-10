@@ -1,12 +1,12 @@
 """Control plane service — admin console, tenant config, RBAC, and safety layer."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI
 
-from .routers import admin, approvals
 from .rbac.middleware import RBACMiddleware
+from .routers import admin, approvals
 from .safety.approvals import ApprovalChainService
 from .safety.audit import AuditTrailService
 from .safety.policy import create_default_policies

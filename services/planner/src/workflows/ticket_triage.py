@@ -6,7 +6,7 @@ and intelligent routing to the appropriate support team.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -15,14 +15,14 @@ if TYPE_CHECKING:
     from ..graph.engine import WorkflowEngine
 
 
-class TicketPriority(str, Enum):
+class TicketPriority(StrEnum):
     CRITICAL = "critical"  # P1 — service down
     HIGH = "high"  # P2 — major feature broken
     MEDIUM = "medium"  # P3 — degraded functionality
     LOW = "low"  # P4 — minor issue or request
 
 
-class TicketCategory(str, Enum):
+class TicketCategory(StrEnum):
     INFRASTRUCTURE = "infrastructure"
     APPLICATION = "application"
     SECURITY = "security"
@@ -117,14 +117,16 @@ def finalize(state: TriageState) -> TriageState:
     return {
         **state,
         "status": "completed",
-        "results": [{
-            "ticket_id": state.get("ticket_id"),
-            "category": state.get("category"),
-            "priority": state.get("priority"),
-            "assigned_team": state.get("assigned_team"),
-            "sla_hours": state.get("sla_hours"),
-            "knowledge_articles": state.get("knowledge_articles", []),
-        }],
+        "results": [
+            {
+                "ticket_id": state.get("ticket_id"),
+                "category": state.get("category"),
+                "priority": state.get("priority"),
+                "assigned_team": state.get("assigned_team"),
+                "sla_hours": state.get("sla_hours"),
+                "knowledge_articles": state.get("knowledge_articles", []),
+            }
+        ],
     }
 
 

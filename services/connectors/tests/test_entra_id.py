@@ -1,7 +1,6 @@
 """Tests for the Entra ID connector."""
 
 import pytest
-
 from src.connectors.entra_id.connector import EntraIDConnector
 from src.framework.base import ConnectorStatus
 
@@ -13,11 +12,13 @@ def connector():
 
 @pytest.mark.asyncio
 async def test_authenticate(connector):
-    result = await connector.authenticate({
-        "tenant_id": "test-tenant",
-        "client_id": "test-client",
-        "client_secret": "test-secret",
-    })
+    result = await connector.authenticate(
+        {
+            "tenant_id": "test-tenant",
+            "client_id": "test-client",
+            "client_secret": "test-secret",
+        }
+    )
     assert result is True
     assert connector.status == ConnectorStatus.HEALTHY
 
