@@ -1,6 +1,6 @@
 """Tests for the access provisioning workflow."""
 
-from services.planner.src.workflows.access_provisioning import (
+from src.workflows.access_provisioning import (
     EventType,
     ExecutionMode,
     plan_actions,

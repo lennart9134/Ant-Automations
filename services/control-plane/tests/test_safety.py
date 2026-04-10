@@ -1,7 +1,7 @@
 """Tests for the safety layer."""
 
-from services.control_plane.src.safety.approvals import ApprovalChainService, RiskLevel, ApprovalState
-from services.control_plane.src.safety.policy import PolicyDecision, create_default_policies
+from src.safety.approvals import ApprovalChainService, ApprovalState, RiskLevel
+from src.safety.policy import PolicyDecision, create_default_policies
 
 
 def test_low_risk_auto_approved():
@@ -41,6 +41,23 @@ def test_high_risk_multi_approver():
 
     svc.decide(req.id, "approver-2", approved=True)
     assert req.state == ApprovalState.APPROVED
+
+
+def test_unknown_approver_raises():
+    """Deciding with an approver_id not in the chain must raise ValueError."""
+    svc = ApprovalChainService()
+    req = svc.create_request(
+        workflow_run_id="run-4",
+        action_description="Test unknown approver",
+        risk_level=RiskLevel.MEDIUM,
+        approvers=["approver-1"],
+    )
+
+    try:
+        svc.decide(req.id, "unknown-approver", approved=True)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
 
 
 def test_policy_blocks_admin_deletion():

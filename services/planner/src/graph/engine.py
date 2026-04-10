@@ -37,10 +37,15 @@ class WorkflowResult:
 
 
 class WorkflowEngine:
-    """Manages LangGraph workflow registration and execution."""
+    """Manages LangGraph workflow registration and execution.
+
+    Graphs are compiled once at registration time and reused for every
+    execution, avoiding the overhead of recompilation on each request.
+    """
 
     def __init__(self) -> None:
-        self._workflows: dict[str, StateGraph] = {}
+        self._graphs: dict[str, StateGraph] = {}
+        self._compiled: dict[str, Any] = {}
 
     async def start(self) -> None:
         from ..workflows.access_provisioning import register_access_provisioning
@@ -53,14 +58,14 @@ class WorkflowEngine:
         pass
 
     def register(self, name: str, graph: StateGraph) -> None:
-        self._workflows[name] = graph
+        self._graphs[name] = graph
+        self._compiled[name] = graph.compile()
 
     async def execute(self, workflow_name: str, payload: dict[str, Any]) -> WorkflowResult:
-        if workflow_name not in self._workflows:
+        if workflow_name not in self._compiled:
             raise ValueError(f"Unknown workflow: {workflow_name}")
 
-        graph = self._workflows[workflow_name]
-        compiled = graph.compile()
+        compiled = self._compiled[workflow_name]
 
         state = WorkflowState(
             workflow_name=workflow_name,

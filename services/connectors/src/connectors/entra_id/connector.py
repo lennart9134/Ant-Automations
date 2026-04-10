@@ -19,7 +19,7 @@ from ...framework.base import (
 
 class EntraIDConnector(BaseConnector):
     name = "entra_id"
-    supported_actions = [
+    supported_actions = (
         "create_user",
         "disable_user",
         "delete_user",
@@ -30,13 +30,13 @@ class EntraIDConnector(BaseConnector):
         "list_groups",
         "assign_role",
         "revoke_all_sessions",
-    ]
-    required_permissions = [
+    )
+    required_permissions = (
         PermissionScope("User.ReadWrite.All", "Create, update, and delete users"),
         PermissionScope("Group.ReadWrite.All", "Manage group memberships"),
         PermissionScope("Directory.ReadWrite.All", "Manage directory roles"),
         PermissionScope("User.RevokeSessions.All", "Revoke user sign-in sessions"),
-    ]
+    )
 
     def __init__(self) -> None:
         self._token: str | None = None

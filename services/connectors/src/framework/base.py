@@ -79,8 +79,8 @@ class BaseConnector(ABC):
 
     name: str = ""
     status: ConnectorStatus = ConnectorStatus.NOT_CONFIGURED
-    supported_actions: list[str] = []
-    required_permissions: list[PermissionScope] = []
+    supported_actions: tuple[str, ...] = ()
+    required_permissions: tuple[PermissionScope, ...] = ()
 
     @abstractmethod
     async def authenticate(self, credentials: dict[str, str]) -> bool:

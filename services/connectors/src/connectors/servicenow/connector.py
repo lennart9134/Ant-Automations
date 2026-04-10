@@ -19,7 +19,7 @@ from ...framework.base import (
 
 class ServiceNowConnector(BaseConnector):
     name = "servicenow"
-    supported_actions = [
+    supported_actions = (
         "create_incident",
         "update_incident",
         "assign_incident",
@@ -30,14 +30,14 @@ class ServiceNowConnector(BaseConnector):
         "search_knowledge_base",
         "get_sla_status",
         "escalate_incident",
-    ]
-    required_permissions = [
+    )
+    required_permissions = (
         PermissionScope("incident_write", "Create and update incidents"),
         PermissionScope("incident_read", "Read incident details"),
         PermissionScope("knowledge_read", "Search knowledge base articles"),
         PermissionScope("sla_read", "Read SLA status and metrics"),
         PermissionScope("assignment_write", "Assign and reassign incidents"),
-    ]
+    )
 
     def __init__(self) -> None:
         self._token: str | None = None

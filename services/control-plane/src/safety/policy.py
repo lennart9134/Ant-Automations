@@ -6,6 +6,7 @@ rules to determine whether they should proceed, require approval, or be blocked.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -80,7 +81,7 @@ class PolicyEngine:
                     all_match = False
                     break
 
-            if all_match and matched:
+            if all_match:
                 return PolicyEvaluation(
                     rule_id=rule.id,
                     rule_name=rule.name,
@@ -107,6 +108,8 @@ class PolicyEngine:
             return value not in condition.value
         elif condition.op == PolicyConditionOp.CONTAINS:
             return condition.value in str(value)
+        elif condition.op == PolicyConditionOp.MATCHES:
+            return bool(re.search(condition.value, str(value)))
         return False
 
 

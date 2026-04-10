@@ -93,13 +93,20 @@ class ApprovalChainService:
         if request.state != ApprovalState.PENDING:
             raise ValueError(f"Request {request_id} is not pending: {request.state}")
 
+        step_found = False
         for step in request.steps:
             if step.approver_id == approver_id and not step.decided:
                 step.decided = True
                 step.decision = ApprovalState.APPROVED if approved else ApprovalState.DENIED
                 step.decided_at = datetime.now(timezone.utc).isoformat()
                 step.comment = comment
+                step_found = True
                 break
+
+        if not step_found:
+            raise ValueError(
+                f"Approver '{approver_id}' has no pending step on request {request_id}"
+            )
 
         if any(s.decision == ApprovalState.DENIED for s in request.steps):
             request.state = ApprovalState.DENIED

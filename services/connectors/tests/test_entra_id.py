@@ -2,8 +2,8 @@
 
 import pytest
 
-from services.connectors.src.connectors.entra_id.connector import EntraIDConnector
-from services.connectors.src.framework.base import ConnectorStatus
+from src.connectors.entra_id.connector import EntraIDConnector
+from src.framework.base import ConnectorStatus
 
 
 @pytest.fixture
