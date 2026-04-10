@@ -37,11 +37,42 @@ jobs:
         run: |
           cd ${{ matrix.service }}
           pip install ".[dev]" 2>/dev/null || pip install .
-          pip install pytest pytest-asyncio
-      - name: Run tests
+          pip install pytest pytest-asyncio pytest-cov
+      - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          python -m pytest tests/ -v --tb=short || true
+          python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: ${{ matrix.service }}/coverage.xml
+
+  security:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - services/planner
+          - services/connectors
+          - services/control-plane
+          - services/workers
+          - services/vision
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.service }}
+          pip install ".[dev]" 2>/dev/null || pip install .
+          pip install pip-audit
+      - name: Audit dependencies for vulnerabilities
+        run: |
+          cd ${{ matrix.service }}
+          pip-audit --strict
 
   docker:
     runs-on: ubuntu-latest
