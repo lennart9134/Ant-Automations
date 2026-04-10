@@ -1,0 +1,16 @@
+[project]
+name = "ant-automations"
+version = "0.1.0"
+description = "Enterprise AI agent workforce platform with policy-driven governance"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["services/*/tests", "libs/*/tests"]
+asyncio_mode = "auto"

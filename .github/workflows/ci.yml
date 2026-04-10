@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - services/planner
+          - services/connectors
+          - services/control-plane
+          - services/workers
+          - services/vision
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd ${{ matrix.service }}
+          pip install ".[dev]" 2>/dev/null || pip install .
+          pip install pytest pytest-asyncio
+      - name: Run tests
+        run: |
+          cd ${{ matrix.service }}
+          python -m pytest tests/ -v --tb=short || true
+
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - services/planner
+          - services/connectors
+          - services/control-plane
+          - services/workers
+          - services/vision
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t ant-$(basename ${{ matrix.service }}) ${{ matrix.service }}

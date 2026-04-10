@@ -1,0 +1,21 @@
+[project]
+name = "ant-planner"
+version = "0.1.0"
+description = "LangGraph orchestration service for Ant Automations workflows"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "pydantic>=2.9",
+    "asyncpg>=0.30",
+    "redis>=5.0",
+    "nats-py>=2.9",
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "httpx>=0.27"]

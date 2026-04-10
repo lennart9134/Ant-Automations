@@ -1,0 +1,12 @@
+[project]
+name = "ant-observability"
+version = "0.1.0"
+description = "Shared observability library — OTel instrumentation, metrics, and tracing"
+requires-python = ">=3.11"
+dependencies = [
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.27",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+    "prometheus-client>=0.21",
+]
