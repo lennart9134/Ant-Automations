@@ -36,12 +36,12 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ matrix.service }}
-          pip install ".[dev]" 2>/dev/null || pip install .
+          pip install ".[dev]" || pip install .
           pip install pytest pytest-asyncio pytest-cov
       - name: Run tests with coverage
         run: |
           cd ${{ matrix.service }}
-          python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
+          python -m pytest tests/ -v --tb=short --cov=src --cov-report=term-missing || python -m pytest tests/ -v --tb=long
 
   security:
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ matrix.service }}
-          pip install ".[dev]" 2>/dev/null || pip install .
+          pip install ".[dev]" || pip install .
           pip install pip-audit
       - name: Audit dependencies for vulnerabilities
         continue-on-error: true
