@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # === Application Services ===
 
@@ -13,10 +11,24 @@ services:
       - REDIS_URL=redis://redis:6379
       - NATS_URL=nats://nats:4222
     depends_on:
-      - postgres
-      - redis
-      - nats
-      - otel-collector
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
 
   connectors:
     build: ./services/connectors
@@ -25,7 +37,18 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
-      - otel-collector
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
 
   control-plane:
     build: ./services/control-plane
@@ -35,10 +58,24 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - POSTGRES_DSN=postgresql://ant:ant@postgres:5432/ant
       - REDIS_URL=redis://redis:6379
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
     depends_on:
-      - postgres
-      - redis
-      - otel-collector
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
 
   workers:
     build: ./services/workers
@@ -48,8 +85,20 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - NATS_URL=nats://nats:4222
     depends_on:
-      - nats
-      - otel-collector
+      nats:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
 
   vision:
     build: ./services/vision
@@ -58,7 +107,18 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
-      - otel-collector
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
 
   # === Infrastructure ===
 
@@ -72,18 +132,41 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
 
   nats:
     image: nats:2.10-alpine
     ports:
       - "4222:4222"
       - "8222:8222"
-    command: ["--jetstream", "--monitor", "8222"]
+    command: ["--jetstream", "--monitor", "8222", "--store_dir", "/data"]
+    volumes:
+      - natsdata:/data
+    restart: unless-stopped
+    networks:
+      - backend
 
   minio:
     image: minio/minio:latest
@@ -96,6 +179,14 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
 
   # === Observability ===
 
@@ -107,6 +198,10 @@ services:
       - "8888:8888"   # Collector metrics
     volumes:
       - ./infrastructure/monitoring/otel/collector.yaml:/etc/otelcol-contrib/config.yaml
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
 
   prometheus:
     image: prom/prometheus:v2.54.0
@@ -114,6 +209,10 @@ services:
       - "9090:9090"
     volumes:
       - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - promdata:/prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
 
   grafana:
     image: grafana/grafana:11.2.0
@@ -124,7 +223,21 @@ services:
     volumes:
       - ./infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
       - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - grafanadata:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - monitoring
 
 volumes:
   pgdata:
+  redisdata:
+  natsdata:
   miniodata:
+  promdata:
+  grafanadata:
+
+networks:
+  backend:
+    driver: bridge
+  monitoring:
+    driver: bridge
