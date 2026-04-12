@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vision
+  labels:
+    app.kubernetes.io/name: vision
+    app.kubernetes.io/part-of: ant-automations
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vision
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vision
+        app.kubernetes.io/part-of: ant-automations
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: vision
+          image: ant-vision:latest
+          ports:
+            - containerPort: 8005
+              name: http
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: ant-config
+                  key: otel-endpoint
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vision
+  labels:
+    app.kubernetes.io/name: vision
+spec:
+  selector:
+    app.kubernetes.io/name: vision
+  ports:
+    - port: 8005
+      targetPort: http
+      name: http

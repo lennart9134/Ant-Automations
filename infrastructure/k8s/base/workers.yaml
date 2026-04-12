@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workers
+  labels:
+    app.kubernetes.io/name: workers
+    app.kubernetes.io/part-of: ant-automations
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: workers
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: workers
+        app.kubernetes.io/part-of: ant-automations
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: workers
+          image: ant-workers:latest
+          ports:
+            - containerPort: 8004
+              name: http
+          env:
+            - name: NATS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ant-config
+                  key: nats-url
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: ant-config
+                  key: otel-endpoint
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workers
+  labels:
+    app.kubernetes.io/name: workers
+spec:
+  selector:
+    app.kubernetes.io/name: workers
+  ports:
+    - port: 8004
+      targetPort: http
+      name: http

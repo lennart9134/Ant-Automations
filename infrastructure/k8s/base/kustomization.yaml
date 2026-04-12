@@ -1,0 +1,22 @@
+# Ant Automations — Kubernetes Base Manifests
+#
+# Kustomize base for deploying all platform services. Overlay with
+# environment-specific patches (dev/staging/production).
+#
+# Usage:
+#   kubectl apply -k infrastructure/k8s/base/
+#   # or with an overlay:
+#   kubectl apply -k infrastructure/k8s/overlays/production/
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ant-automations
+
+resources:
+  - namespace.yaml
+  - control-plane.yaml
+  - planner.yaml
+  - connectors.yaml
+  - workers.yaml
+  - vision.yaml

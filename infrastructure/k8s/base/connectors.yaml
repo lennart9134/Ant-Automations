@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connectors
+  labels:
+    app.kubernetes.io/name: connectors
+    app.kubernetes.io/part-of: ant-automations
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: connectors
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: connectors
+        app.kubernetes.io/part-of: ant-automations
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: connectors
+          image: ant-connectors:latest
+          ports:
+            - containerPort: 8002
+              name: http
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: ant-config
+                  key: otel-endpoint
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: connectors
+  labels:
+    app.kubernetes.io/name: connectors
+spec:
+  selector:
+    app.kubernetes.io/name: connectors
+  ports:
+    - port: 8002
+      targetPort: http
+      name: http
