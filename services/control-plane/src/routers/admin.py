@@ -16,7 +16,7 @@ async def get_dashboard(request: Request) -> dict:
     """Aggregated admin dashboard: workflow counts, pending approvals, recent audit log."""
     audit = _get_audit(request)
     approval_svc = request.app.state.approval_service
-    recent = audit.query(limit=10)
+    recent = await audit.query(limit=10)
     pending_count = sum(1 for r in approval_svc._requests.values() if r.state.value == "pending")
     return {
         "workflows": {
@@ -57,7 +57,7 @@ async def get_worker_utilization() -> dict:
 async def get_audit_log(limit: int = 50, offset: int = 0, request: Request = None) -> dict:
     """Paginated audit log viewer, backed by AuditTrailService."""
     audit = _get_audit(request)
-    all_events = audit.query(limit=limit + offset)
+    all_events = await audit.query(limit=limit + offset)
     page = all_events[offset : offset + limit]
     return {
         "entries": [

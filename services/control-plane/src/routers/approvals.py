@@ -29,7 +29,7 @@ def _get_service(request: Request) -> ApprovalChainService:
 async def create_approval(body: CreateApprovalRequest, request: Request) -> dict:
     """Create a new approval request routed through the ApprovalChainService."""
     svc = _get_service(request)
-    req = svc.create_request(
+    req = await svc.create_request(
         workflow_run_id=body.workflow_run_id,
         action_description=body.action_description,
         risk_level=RiskLevel(body.risk_level),
@@ -47,7 +47,7 @@ async def create_approval(body: CreateApprovalRequest, request: Request) -> dict
 async def get_approval(approval_id: str, request: Request) -> dict:
     """Get approval request details."""
     svc = _get_service(request)
-    req = svc.get(approval_id)
+    req = await svc.get(approval_id)
     if req is None:
         return {"detail": "Not found", "approval_id": approval_id}
     return {
@@ -69,7 +69,7 @@ async def decide_approval(approval_id: str, decision: ApprovalDecision, request:
     """Submit an approval decision."""
     svc = _get_service(request)
     user = request.state.user
-    req = svc.decide(
+    req = await svc.decide(
         request_id=approval_id,
         approver_id=user.user_id,
         approved=decision.approved,
