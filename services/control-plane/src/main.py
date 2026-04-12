@@ -10,6 +10,8 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from .db.pool import DatabasePool
+from .middleware.rate_limit import RateLimitMiddleware
+from .middleware.tenant import TenantIsolationMiddleware
 from .rbac.middleware import RBACMiddleware
 from .routers import admin, approvals
 from .safety.approvals import ApprovalChainService
@@ -53,9 +55,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await db.close()
 
 
-app = FastAPI(title="Ant Automations Control Plane", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="Ant Automations Control Plane",
+    version="0.1.0",
+    description=(
+        "Enterprise automation platform control plane — admin console, tenant management, "
+        "RBAC, approval chains, policy engine, and audit trail."
+    ),
+    lifespan=lifespan,
+)
 
-# --- Middleware (order matters: outermost first) ---
+# --- Middleware (order matters: outermost runs first) ---
+# CORS must be outermost to handle preflight requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -63,7 +74,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Rate limiting runs before auth to protect against brute-force
+app.add_middleware(RateLimitMiddleware)
+# RBAC authenticates and sets user context
 app.add_middleware(RBACMiddleware)
+# Tenant isolation ensures every request is scoped (reads RBAC context)
+app.add_middleware(TenantIsolationMiddleware)
 
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(approvals.router, prefix="/api/v1/approvals", tags=["approvals"])
