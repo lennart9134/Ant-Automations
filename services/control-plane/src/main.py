@@ -41,9 +41,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.redis = None
         logger.warning("REDIS_URL not set — running without Redis")
 
-    # Domain services
-    app.state.approval_service = ApprovalChainService()
-    app.state.audit_service = AuditTrailService()
+    # Domain services (wired to DB for persistence)
+    approval_service = ApprovalChainService()
+    approval_service.set_db(db)
+    app.state.approval_service = approval_service
+
+    audit_service = AuditTrailService()
+    audit_service.set_db(db)
+    app.state.audit_service = audit_service
+
     app.state.policy_engine = create_default_policies()
     app.state.tenant_service = TenantService()
 
