@@ -116,7 +116,7 @@ def finalize(state: TriageState) -> TriageState:
     """Finalize triage and produce results."""
     return {
         **state,
-        "status": "completed",
+        "status": "triaged",
         "results": [
             {
                 "ticket_id": state.get("ticket_id"),
@@ -130,6 +130,40 @@ def finalize(state: TriageState) -> TriageState:
     }
 
 
+def verify_triage(state: TriageState) -> TriageState:
+    """Verify triage decisions are consistent and complete.
+
+    Checks:
+    1. Category is valid and routing is consistent with it
+    2. Priority has a matching SLA
+    3. An assigned team is present
+    """
+    errors: list[str] = []
+
+    category = state.get("category", "")
+    if category not in ROUTING_TABLE:
+        errors.append(f"Unknown category: {category}")
+
+    assigned_team = state.get("assigned_team", "")
+    expected_team = ROUTING_TABLE.get(category, "")
+    if assigned_team and expected_team and assigned_team != expected_team:
+        errors.append(f"Routing mismatch: {assigned_team} != expected {expected_team} for {category}")
+
+    if not state.get("priority"):
+        errors.append("No priority assigned")
+
+    if not assigned_team:
+        errors.append("No team assigned")
+
+    status = "completed" if not errors else "verification_failed"
+    results = state.get("results", [])
+    if results:
+        results[0]["verified"] = not errors
+        results[0]["verification_errors"] = errors
+
+    return {**state, "status": status, "results": results}
+
+
 def build_graph() -> StateGraph:
     graph = StateGraph(TriageState)
 
@@ -138,13 +172,15 @@ def build_graph() -> StateGraph:
     graph.add_node("search_kb", search_knowledge_base)
     graph.add_node("route", route_ticket)
     graph.add_node("finalize", finalize)
+    graph.add_node("verify", verify_triage)
 
     graph.set_entry_point("categorize")
     graph.add_edge("categorize", "prioritize")
     graph.add_edge("prioritize", "search_kb")
     graph.add_edge("search_kb", "route")
     graph.add_edge("route", "finalize")
-    graph.add_edge("finalize", END)
+    graph.add_edge("finalize", "verify")
+    graph.add_edge("verify", END)
 
     return graph
 

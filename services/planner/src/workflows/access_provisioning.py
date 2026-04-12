@@ -213,8 +213,51 @@ def execute_actions(state: ProvisioningState) -> ProvisioningState:
         **state,
         "executed_actions": executed,
         "errors": errors,
-        "status": "completed",
+        "status": "executed",
         "results": executed,
+    }
+
+
+def verify_actions(state: ProvisioningState) -> ProvisioningState:
+    """Verify executed actions matched the plan — prevents drift and partial failures.
+
+    For each executed action, checks:
+    1. The action type was in the original plan
+    2. The target matches what was planned
+    3. The execution reported success
+
+    Flags discrepancies so they can be reviewed before marking the workflow complete.
+    """
+    planned = {(a["action_type"], a["target"]) for a in state.get("planned_actions", [])}
+    executed = state.get("executed_actions", [])
+    errors = list(state.get("errors", []))
+    verification: list[dict[str, Any]] = []
+
+    for action in executed:
+        key = (action["action_type"], action["target"])
+        if key not in planned:
+            errors.append(f"Unexpected action executed: {action['action_type']} on {action['target']}")
+            verification.append({**action, "verified": False, "reason": "not_in_plan"})
+        elif action.get("status") != "completed":
+            errors.append(f"Action did not complete: {action['action_type']} on {action['target']}")
+            verification.append({**action, "verified": False, "reason": "incomplete"})
+        else:
+            verification.append({**action, "verified": True, "reason": "ok"})
+
+    # Check for planned actions that were never executed
+    executed_keys = {(a["action_type"], a["target"]) for a in executed}
+    for action_type, target in planned - executed_keys:
+        errors.append(f"Planned action not executed: {action_type} on {target}")
+        verification.append({"action_type": action_type, "target": target, "verified": False, "reason": "missing"})
+
+    all_verified = all(v["verified"] for v in verification)
+    status = "completed" if all_verified else "verification_failed"
+
+    return {
+        **state,
+        "errors": errors,
+        "status": status,
+        "results": verification,
     }
 
 
@@ -231,11 +274,13 @@ def build_graph() -> StateGraph:
     graph.add_node("plan", plan_actions)
     graph.add_node("approve", check_approvals)
     graph.add_node("execute", execute_actions)
+    graph.add_node("verify", verify_actions)
 
     graph.set_entry_point("plan")
     graph.add_edge("plan", "approve")
     graph.add_conditional_edges("approve", should_execute, {"execute": "execute", "end": END})
-    graph.add_edge("execute", END)
+    graph.add_edge("execute", "verify")
+    graph.add_edge("verify", END)
 
     return graph
 
