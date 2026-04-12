@@ -78,6 +78,7 @@ def upgrade() -> None:
         sa.Column("decision", sa.String(32), server_default="pending"),
         sa.Column("decided_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("comment", sa.Text, server_default=""),
+        sa.UniqueConstraint("request_id", "approver_id"),
     )
 
 
