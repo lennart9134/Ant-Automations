@@ -1,0 +1,285 @@
+# Ant Automations — Demo Environment
+# Usage: docker-compose -f docker-compose.demo.yml up
+#
+# Boots the full platform with seed data pre-loaded.
+# After startup, run: docker-compose -f docker-compose.demo.yml exec demo-seed python /seed/seed.py --dsn postgresql://ant:ant@postgres:5432/ant
+
+services:
+  # === Application Services ===
+
+  planner:
+    build: ./services/planner
+    ports:
+      - "8001:8001"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - POSTGRES_DSN=postgresql://ant:ant@postgres:5432/ant
+      - REDIS_URL=redis://redis:6379
+      - NATS_URL=nats://nats:4222
+      - ANT_DEMO_MODE=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  connectors:
+    build: ./services/connectors
+    ports:
+      - "8002:8002"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - ANT_DEMO_MODE=true
+    depends_on:
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  control-plane:
+    build: ./services/control-plane
+    ports:
+      - "8003:8003"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - POSTGRES_DSN=postgresql://ant:ant@postgres:5432/ant
+      - REDIS_URL=redis://redis:6379
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      - ANT_DEMO_MODE=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  workers:
+    build: ./services/workers
+    ports:
+      - "8004:8004"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - NATS_URL=nats://nats:4222
+      - ANT_DEMO_MODE=true
+    depends_on:
+      nats:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  vision:
+    build: ./services/vision
+    ports:
+      - "8005:8005"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - ANT_DEMO_MODE=true
+    depends_on:
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  # === Demo Seed Runner ===
+  # Runs migrations + seed data on startup, then exits.
+
+  demo-seed:
+    image: postgres:16-alpine
+    volumes:
+      - ./demo:/seed
+      - ./services/control-plane:/control-plane
+    environment:
+      - PGPASSWORD=ant
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Postgres...' &&
+        until pg_isready -h postgres -U ant -d ant; do sleep 2; done &&
+        echo 'Running migrations...' &&
+        psql postgresql://ant:ant@postgres:5432/ant -c 'SELECT 1 FROM tenants LIMIT 1' 2>/dev/null ||
+        psql postgresql://ant:ant@postgres:5432/ant -f /control-plane/migrations/versions/001_initial_schema.sql 2>/dev/null;
+        echo 'Loading seed data...' &&
+        psql postgresql://ant:ant@postgres:5432/ant -f /seed/seed.sql &&
+        echo 'Verifying...' &&
+        psql postgresql://ant:ant@postgres:5432/ant -c 'SELECT tenant_id, name FROM tenants' &&
+        psql postgresql://ant:ant@postgres:5432/ant -c 'SELECT COUNT(*) as audit_events FROM audit_events' &&
+        psql postgresql://ant:ant@postgres:5432/ant -c 'SELECT COUNT(*) as approval_requests FROM approval_requests' &&
+        echo 'Demo seed complete!'
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
+  # === Infrastructure ===
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ant
+      POSTGRES_PASSWORD: ant
+      POSTGRES_DB: ant
+    ports:
+      - "5432:5432"
+    volumes:
+      - demo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - demo-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
+
+  nats:
+    image: nats:2.10-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["--jetstream", "--monitor", "8222", "--store_dir", "/data"]
+    volumes:
+      - demo-natsdata:/data
+    restart: unless-stopped
+    networks:
+      - backend
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - demo-miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # === Observability ===
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+    volumes:
+      - ./infrastructure/monitoring/otel/collector.yaml:/etc/otelcol-contrib/config.yaml
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:v2.54.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - demo-promdata:/prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./infrastructure/monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - demo-grafanadata:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+volumes:
+  demo-pgdata:
+  demo-redisdata:
+  demo-natsdata:
+  demo-miniodata:
+  demo-promdata:
+  demo-grafanadata:
+
+networks:
+  backend:
+    driver: bridge
+  monitoring:
+    driver: bridge
