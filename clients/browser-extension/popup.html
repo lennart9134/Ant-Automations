@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ant Observation</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        width: 320px;
+        margin: 0;
+        padding: 16px;
+        color: #222;
+      }
+      h1 { font-size: 15px; margin: 0 0 10px; }
+      .row { margin-bottom: 10px; }
+      .label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+      .value { font-size: 13px; margin-top: 2px; }
+      .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+      .pill.active { background: #def7ec; color: #03543f; }
+      .pill.paused { background: #fde68a; color: #7c2d12; }
+      button { margin-top: 8px; padding: 6px 10px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; cursor: pointer; font-size: 12px; }
+      .note { margin-top: 14px; padding: 10px; background: #eef2ff; border-radius: 6px; font-size: 11px; color: #3730a3; line-height: 1.4; }
+      .never { color: #991b1b; }
+    </style>
+  </head>
+  <body>
+    <h1>Ant Observation Agent</h1>
+    <div class="row">
+      <div class="label">Status</div>
+      <div class="value"><span id="status-pill" class="pill active">active</span></div>
+      <button id="toggle-pause">Pause</button>
+    </div>
+    <div class="row">
+      <div class="label">Captured</div>
+      <div class="value">navigation (host + path template), form-submission field names</div>
+    </div>
+    <div class="row">
+      <div class="label">NEVER captured</div>
+      <div class="value never">form values, clipboard, screen content, cookies, tokens</div>
+    </div>
+    <div class="note">
+      Your employer's privacy notice explains retention and your data rights.
+      Pause at any time from this popup — your pause state is local to this
+      browser.
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ant Observation Agent</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 24px;
+        color: #222;
+        background: #f6f7f9;
+      }
+      h1 { font-size: 18px; margin: 0 0 16px; }
+      .row { margin-bottom: 12px; }
+      .label { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+      .value { font-size: 14px; margin-top: 2px; }
+      .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+      .pill.active { background: #def7ec; color: #03543f; }
+      .pill.paused { background: #fde68a; color: #7c2d12; }
+      .note { margin-top: 24px; padding: 12px; background: #eef2ff; border-radius: 6px; font-size: 12px; color: #3730a3; }
+    </style>
+  </head>
+  <body>
+    <h1>Ant Observation Agent</h1>
+    <div class="row">
+      <div class="label">Status</div>
+      <div class="value"><span id="status-pill" class="pill active">active</span></div>
+    </div>
+    <div class="row">
+      <div class="label">Scope</div>
+      <div class="value" id="scope">minimal</div>
+    </div>
+    <div class="row">
+      <div class="label">Captured categories</div>
+      <div class="value">application switches, window focus, file open/save</div>
+    </div>
+    <div class="row">
+      <div class="label">NEVER captured</div>
+      <div class="value">keystrokes, clipboard content, form values, screen content</div>
+    </div>
+    <div class="note">
+      You can pause observation at any time from the Ant icon in your system tray.
+      See your employer's privacy notice for details on retention and your data rights.
+    </div>
+  </body>
+</html>
