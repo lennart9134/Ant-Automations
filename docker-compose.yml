@@ -120,6 +120,59 @@ services:
       - backend
       - monitoring
 
+  # --- v4.5 Watch layer ---
+  observation-ingest:
+    build: ./services/observation-ingest
+    ports:
+      - "8006:8006"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - NATS_URL=nats://nats:4222
+      - OBSERVATION_STREAM=OBSERVATION
+      - OBSERVATION_SUBJECT_PREFIX=observation.events
+    depends_on:
+      nats:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
+  # --- v4.5 Learn layer ---
+  pattern-classifier:
+    build: ./services/pattern-classifier
+    ports:
+      - "8007:8007"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_DSN=postgresql://ant:ant@postgres:5432/ant
+    depends_on:
+      nats:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - backend
+      - monitoring
+
   # === Infrastructure ===
 
   postgres:

@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ant Observation Extension — Enterprise Policy",
+  "description": "Schema for fleet-managed configuration via ExtensionSettings / chrome.storage.managed. Set from the Google Admin Console or a Windows/Mac policy deployment. Employees cannot override these values from the popup.",
+  "type": "object",
+  "properties": {
+    "tenantId": {
+      "type": "string",
+      "description": "Customer tenant UUID issued by the Ant control plane."
+    },
+    "ingestUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL of the observation-ingest service for this tenant (e.g. https://ingest.tenant.ant.example.com)."
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["minimal", "standard"],
+      "default": "minimal",
+      "description": "Capture scope. 'minimal' is the only mode permitted without a signed Betriebsvereinbarung / works-council consent."
+    },
+    "hostAllowlist": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" },
+      "description": "Explicit list of SaaS origins in-scope for observation. Navigation events on any other origin are dropped before leaving the browser. Empty list = capture nothing."
+    },
+    "pauseAllowed": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, employee can pause capture from the popup. Mandated by the DE Betriebsvereinbarung template (§4)."
+    }
+  },
+  "required": ["tenantId", "ingestUrl", "hostAllowlist"]
+}
